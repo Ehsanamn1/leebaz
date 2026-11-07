@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
     paths:
-      - 'site.zip'
+      - 'parts/**'
       - '.github/workflows/pages.yml'
   workflow_dispatch:
 
@@ -26,12 +26,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Configure and enable GitHub Pages
+      - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
-        with:
-          enablement: true
-      - name: Extract static site
+      - name: Rebuild the site archive from ordered binary parts
         run: |
+          cat parts/part*.bin > site.zip
+          unzip -t site.zip
           mkdir -p dist
           unzip -q site.zip -d dist
           test -s dist/index.html
