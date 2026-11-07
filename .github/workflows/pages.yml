@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
     paths:
-      - 'parts/**'
+      - 'index.html'
       - '.github/workflows/pages.yml'
   workflow_dispatch:
 
@@ -26,22 +26,41 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Rebuild and validate the static site archive
+
+      - name: Validate and prepare the standalone storefront
         run: |
-          cat parts/part*.bin > site.zip
-          unzip -t site.zip
+          test -s index.html
+          python - <<'PY'
+          from html.parser import HTMLParser
+          from pathlib import Path
+
+          source = Path("index.html").read_text(encoding="utf-8")
+          assert '<html lang="fa" dir="rtl">' in source, "Expected Persian RTL document"
+          assert "</html>" in source, "HTML document appears incomplete"
+
+          class StorefrontParser(HTMLParser):
+              pass
+
+          parser = StorefrontParser()
+          parser.feed(source)
+          parser.close()
+
+          assert "data:image/" in source, "Expected embedded storefront images"
+          print(f"Validated standalone storefront: {len(source.encode('utf-8'))} bytes")
+          PY
           mkdir -p dist
-          unzip -q site.zip -d dist
-          test -s dist/index.html
+          cp index.html dist/index.html
           touch dist/.nojekyll
-          echo "Extracted files:"
-          find dist -maxdepth 3 -type f -printf '%p %s bytes\n' | sort
+          test -s dist/index.html
+
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
+
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: dist
+
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
