@@ -26,9 +26,7 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Configure GitHub Pages
-        uses: actions/configure-pages@v5
-      - name: Rebuild the site archive from ordered binary parts
+      - name: Rebuild and validate the static site archive
         run: |
           cat parts/part*.bin > site.zip
           unzip -t site.zip
@@ -36,6 +34,10 @@ jobs:
           unzip -q site.zip -d dist
           test -s dist/index.html
           touch dist/.nojekyll
+          echo "Extracted files:"
+          find dist -maxdepth 3 -type f -printf '%p %s bytes\n' | sort
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
